@@ -1,5 +1,3 @@
-# 没写完，红色OPENMV的所有代码，完成基础部分Q1-Q4
-
 import sensor, image, time, pyb
 import random
 from pyb import UART
@@ -48,10 +46,10 @@ def calculate_average_rgb(region):
 # Q1.设置运动目标位置复位功能  返回 红色坐标点 距离图像原点的(△x,△y)
 # Q1题变量
 threshold = [(75, 100, -128, 127, -128, 127)] # 阈值
-x_roi = 107
-y_roi = 39
-w = 136
-h = 99
+x_roi = 126
+y_roi = 68
+w = 150
+h = 120
 send_len = 3 # 每隔三个send一次
 ls_x=[] # 红色激光点ls
 ls_y=[] # 红色激光点ls
@@ -96,10 +94,10 @@ while(True):
             for i in blob:
                 if i[5]<(x_roi+w) and i[5] >x_roi and i[6]<(y_roi + h) and i[6]>y_roi:
                     roi_blob.append(i)
+                    img.draw_rectangle(i.rect(),color=(0,0,255),thickness=3)
 
             print('len(blob):',len(blob))
             print('-------len(roi_blob):',len(roi_blob))
-
             blob = roi_blob
             # 考虑到发挥部分的影响，可能 2:(红+绿) 1:(红绿重合) 1:(只有红)
             if len(blob) == 2 : # 红、绿色激光均检测到，只返回红色激光的 (△x,△y)
