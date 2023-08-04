@@ -4,15 +4,15 @@ from pyb import UART
 from pyb import LED
 from pyb import Pin
 
-
 sensor.reset()
 sensor.set_pixformat(sensor.RGB565)
 sensor.set_framesize(sensor.QVGA)
 sensor.skip_frames(time = 2000)
 sensor.set_auto_whitebal(False)
 sensor.set_brightness(-3)
-#sensor.set_auto_exposure(False,500)
-#sensor.set_auto_gain(False,gain_db=5) #增益
+
+# sensor.set_auto_exposure(False,500)
+# sensor.set_auto_gain(False,gain_db=5) #增益
 
 clock = time.clock()
 uart = UART(3,115200)
@@ -49,11 +49,11 @@ def calculate_average_rgb(region):
     b_avg = b_total // num_pixels
     return r_avg, g_avg, b_avg
 
-threshold = [(75, 100, -128, 127, -128, 127)] # 阈值
-x_roi = 126
-y_roi = 68
-w = 150
-h = 120
+threshold = [(85, 100, -128, 127, -128, 127)] # 阈值
+x_roi = 51
+y_roi = 8
+w = 221
+h = 213
 send_len = 3 # 每隔三个send一次
 ls_x=[] # 红色激光点ls
 ls_y=[] # 红色激光点ls
@@ -164,8 +164,17 @@ def rec_avg(m):
 goal=()
 area_min = 1000
 rec_detec_times = 0
-rec_detec_times_lim = 10
+rec_detec_times_lim = 15
 rec_final_ls = []
+camera_reset_flag = 0
+black_threshold_GRAY = [(100, 255)]
+
+kernel = [-1, -1, -1,\
+          -1, +8, -1,\
+          -1, -1, -1]
+
+kernel_size = 1 # kernel width = (size*2)+1, kernel height = (size*2)+1
+
 
 # red_x = 160 #红点坐标X
 # red_y = 120 #红点坐标Y
@@ -180,23 +189,26 @@ rec_final_ls = []
 while(True):
     clock.tick()
     img = sensor.snapshot()
+    # img.lens_corr(strength = 1.8)
+
     W = img.width()
     H = img.height()
     W_C = W/2
     H_C = H/2
 
-    subscriber_mode = 0 # 默认为0，没收到指示~
+    subscriber_mode = 3 # 默认为0，没收到指示~
 
     #--------在此写个串口接受函数，把收到的值赋值给subscriber_mode--------
 
     #----------------------------------------------------------------
-    if subscriber_mode ==0:
+    if subscriber_mode == 0:
         print("没收到指示~")
 
 
     # ---------------------------------------------------------
     # Q1.设置运动目标位置复位功能  返回 红色坐标点 距离 图像原点的(△x,△y)
     # ---------------------------------------------------------
+
     if subscriber_mode ==1:
         roi_blob = []
         blob = img.find_blobs(threshold, margin=10,) # LAB检测
@@ -259,18 +271,28 @@ while(True):
                         ls_x=[]
                         ls_y=[]
 
-
     # ---------------------------------------------------------
     # ---------------------------------------------------------
     # Q3.红色光斑能在30 秒内沿胶带顺时针移动一周。
     # ---------------------------------------------------------
     # ---------------------------------------------------------
     if subscriber_mode ==3:
+
+
+        # img.morph(kernel_size, kernel)
+
         # 下面的`threshold`应设置为足够高的值，以滤除在图像中检测到的具有
         # 低边缘幅度的噪声矩形。最适用与背景形成鲜明对比的矩形。
         # 识别矩形
         if rec_detec_times < rec_detec_times_lim:
-            for r in img.find_rects(threshold = 10000):
+            # 改为灰度
+            sensor.set_pixformat(sensor.GRAYSCALE)
+            # img.morph(kernel_size, kernel)
+            img.binary(black_threshold_GRAY)
+
+            ACCCC = img.find_rects(roi = (x_roi,y_roi,w,h), threshold=10000)
+            print(len(ACCCC))
+            for r in ACCCC:
                 # 判断是否围成矩形
                 is_rect = is_rectangle(r.corners())
                 area = calculate_area(r.corners())
@@ -313,7 +335,23 @@ while(True):
         roi_blob = []
         red_dected_flag = 0
 
+
         if rec_detec_times >= rec_detec_times_lim:
+
+            # 重启相机
+            if camera_reset_flag == 0:
+                print('camera reset!')
+                sensor.reset()
+                sensor.set_pixformat(sensor.RGB565)
+                sensor.set_framesize(sensor.QVGA)
+                sensor.skip_frames(time = 2000)
+                sensor.set_auto_whitebal(False)
+                sensor.set_brightness(-3)
+
+                camera_reset_flag = 1
+            else:
+                pass
+
             blob = img.find_blobs(threshold, margin=10,) # LAB检测
             img.draw_rectangle(x_roi, y_roi, w, h, color = (0,0,255), thickness = 2, fill = False)
             if blob:
