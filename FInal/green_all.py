@@ -18,6 +18,7 @@ uart = UART(3,115200)
 blue_led = pyb.LED(3)
 
 
+
 # 向msp432发送两个数值 data1,data2
 def send_data_to_msp(data1,data2):
     header = bytearray([0x2C, 0x12])
