@@ -4,6 +4,7 @@ from pyb import UART
 from pyb import LED
 from pyb import Pin
 
+
 sensor.reset()
 sensor.set_pixformat(sensor.RGB565)
 sensor.set_framesize(sensor.QVGA)
