@@ -278,7 +278,6 @@ while(True):
     # ---------------------------------------------------------
     if subscriber_mode ==3:
 
-
         # img.morph(kernel_size, kernel)
 
         # 下面的`threshold`应设置为足够高的值，以滤除在图像中检测到的具有
